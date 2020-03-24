@@ -2,7 +2,6 @@ package accounts
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -74,7 +73,7 @@ type Accounts struct {
 		VestingWithdrawRate           string        `json:"vesting_withdraw_rate"`
 		NextVestingWithdrawal         string        `json:"next_vesting_withdrawal"`
 		Withdrawn                     int           `json:"withdrawn"`
-		ToWithdraw                    int           `json:"to_withdraw"`
+		ToWithdraw                    string        `json:"to_withdraw"`
 		WithdrawRoutes                int           `json:"withdraw_routes"`
 		CurationRewards               int           `json:"curation_rewards"`
 		PostingRewards                int           `json:"posting_rewards"`
@@ -98,87 +97,119 @@ type Accounts struct {
 	} `json:"result"`
 }
 
-type rpcJSON struct {
-	JSONrpc string     `json:"jsonrpc"`
+// JSONrpc is used to pass data into unexposed functions.
+// When defining a new JSONrpc use the `NewJRPC()` function for Hive api defaults.
+// To specify data pass a &JSONrpc{} with the desired data into `NewJRPC()`.
+type JSONrpc struct {
+	Version string     `json:"jsonrpc"`
 	Method  string     `json:"method"`
 	Params  [][]string `json:"params"`
 	ID      int        `json:"id"`
+	url     string
 }
 
-// GetAccounts takes a slice of account names and performs the needed actions to return
-// a pointer to a slice of struct.
-//
-// Example:
-// import "github.com/jrswab/go-hive/accounts"
-// accountNames := []string{"jrswab", "hive")
-// accountStructs, err := accounts.GetAccounts(accountNames)
-//     if err != nil {
-//        // handle  error
-//     }
-func GetAccounts(accounts []string) (*Accounts, error) {
-	params := [][]string{accounts}
-
-	jrpc := &rpcJSON{Method: "get_accounts", Params: params}
-	raw := jrpc.queryData()
-
-	accountsData := &Accounts{}
-	err := json.Unmarshal(raw, accountsData)
-	if err != nil {
-		return nil, err
+// NewJRPC creates an JSONrpc struct with defaults.
+// If wish to use a different Hive endpoint pass the URL
+// as a parameter. Otherwise leave the paramaters empty.
+func NewJRPC(url ...string) *JSONrpc {
+	jrpc := &JSONrpc{
+		Version: "2.0",
+		Method:  "",
+		Params:  make([][]string, 0),
+		ID:      1,
+		url:     "https://api.hive.blog",
 	}
-	return accountsData, nil
+
+	if len(url) > 0 {
+		jrpc.url = url[0]
+	}
+	return jrpc
 }
 
-// GetAccount takes an accoun name and performs the needed actions to return a pointer to a
+// GetAccount takes an account name and performs the needed actions to return a pointer to a
 // struct.
 //
-// Example:
-// import "github.com/jrswab/go-hive/accounts"
-// accountStruct, err := accounts.GetAcount("jrswab")
+//Example:
+//import "github.com/jrswab/go-hive/accounts"
+//c := accounts.NewJRPC()
+//accStruct, err := c.GetAcount("jrswab")
 //     if err != nil {
 //        // handle  error
 //     }
-func GetAccount(account string) (*Accounts, error) {
+//fmt.Println(accStruct.Data[0].Name) // Prints out the account name that was passed in.
+func (jrpc *JSONrpc) GetAccount(account string) (*Accounts, error) {
 	prep := []string{account}
 	params := [][]string{prep}
 
-	jrpc := &rpcJSON{Method: "get_accounts", Params: params}
-	raw := jrpc.queryData()
+	jrpc.Method = "get_accounts"
+	jrpc.Params = params
+	raw, err := jrpc.getAccountData()
+	if err != nil {
+		return nil, err
+	}
 
 	accountData := &Accounts{}
-	err := json.Unmarshal(raw, accountData)
+	err = json.Unmarshal(raw, accountData)
 	if err != nil {
 		return nil, err
 	}
 	return accountData, nil
 }
 
-func (data *rpcJSON) queryData() []byte {
-	input := rpcJSON{JSONrpc: "2.0", Method: data.Method, Params: data.Params, ID: 1}
+// GetAccounts takes a slice of account names and performs the needed actions to return
+// a pointer to a struct with a slice of structs. The slice of structs contain the accounts
+// requested via the slice of strings provided.
+//
+//Example:
+//import "github.com/jrswab/go-hive/accounts"
+//c := accounts.NewJRPC()
+//accountNames := []string{"jrswab", "hiveio"}
+//accStructs, err := c.GetAccounts(accountNames)
+//     if err != nil {
+//        // handle  error
+//     }
+//fmt.Println(accStruct.Data[0].Name) // Prints out the first account name that was passed in.
+func (jrpc *JSONrpc) GetAccounts(accList []string) (*Accounts, error) {
+	params := [][]string{accList}
 
-	bytes, err := json.Marshal(input)
+	jrpc.Method = "get_accounts"
+	jrpc.Params = params
+	raw, err := jrpc.getAccountData()
 	if err != nil {
-		fmt.Println(err)
+		return nil, err
 	}
-	fmt.Println(string(bytes))
+
+	accountsData := &Accounts{}
+	err = json.Unmarshal(raw, accountsData)
+	if err != nil {
+		return nil, err
+	}
+	return accountsData, nil
+}
+
+func (jrpc *JSONrpc) getAccountData() ([]byte, error) {
+	bytes, err := json.Marshal(jrpc)
+	if err != nil {
+		return nil, err
+	}
 
 	body := strings.NewReader(string(bytes))
-	req, err := http.NewRequest("POST", "https://api.hive.blog", body)
+	req, err := http.NewRequest("POST", jrpc.url, body)
 	if err != nil {
-		fmt.Println(err)
+		return nil, err
 	}
 
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		fmt.Println(err)
+		return nil, err
 	}
 	defer resp.Body.Close()
 
 	content, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Println(err)
+		return nil, err
 	}
-	return content
+	return content, nil
 }
