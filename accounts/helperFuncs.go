@@ -8,19 +8,16 @@ import (
 	"net/http/httptest"
 )
 
-func runTestServer(units string) *Accounts {
+func getAccountsTestServer(request string) *Accounts {
 	a := new(Accounts)
 
-	data := ""
-	if units == "single" {
-		data = getSingle()
-	}
-	if units == "multi" {
-		data = getMulti()
-	}
-
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintln(w, data)
+		if request == "single" {
+			fmt.Fprintln(w, getSingle())
+		}
+		if request == "multi" {
+			fmt.Fprintln(w, getMulti())
+		}
 	}))
 
 	defer ts.Close()
