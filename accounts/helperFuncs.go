@@ -1,15 +1,13 @@
 package accounts
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"net/http/httptest"
 )
 
-func getAccountsTestServer(request string) *Accounts {
-	a := new(Accounts)
+func getAccountsTestServer(request string) {
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if request == "single" {
@@ -27,9 +25,6 @@ func getAccountsTestServer(request string) *Accounts {
 		log.Fatal(err)
 	}
 	defer res.Body.Close()
-
-	json.NewDecoder(res.Body).Decode(&a)
-	return a
 }
 
 func getTestData(units string) string {
