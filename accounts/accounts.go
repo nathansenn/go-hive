@@ -6,10 +6,10 @@ import (
 	"github.com/ybbus/jsonrpc"
 )
 
-// JSONrpc is used to pass data into unexposed functions.
+// Chain is used to pass data into unexposed functions.
 // When defining a new JSONrpc use the `NewJRPC()` function for Hive api defaults.
-// To specify data pass a &JSONrpc{} with the desired data into `NewJRPC()`.
-type JSONrpc struct {
+// To specify an api endpoint execute `NewJRPC()` with a full URL.
+type Chain struct {
 	version string
 	method  string
 	params  interface{}
@@ -17,44 +17,85 @@ type JSONrpc struct {
 	url     string
 }
 
-// NewJRPC creates an JSONrpc struct with defaults.
-// If wish to use a different Hive endpoint pass the URL
-// as a parameter. Otherwise leave the paramaters empty.
-func NewJRPC(url ...string) *JSONrpc {
-	jrpc := &JSONrpc{
-		version: "2.0",
-		method:  "",
-		params:  make([]string, 0),
-		id:      1,
-		url:     "https://api.hive.blog",
+// NewChain creates an struct with Hive defaults.
+// If wish to use a different Hive endpoint (or a different Graphene blockchain
+// pass the URL as a parameter. Otherwise leave the paramaters empty.
+// If more than one URL is entered, only the first will be used.
+// Example:
+// hive := NewChain() // this will default to api.hive.blog
+func NewChain(url ...string) *Chain {
+	chain := &Chain{
+		id:  1,
+		url: "https://api.hive.blog",
 	}
 
 	if len(url) > 0 {
-		jrpc.url = url[0]
+		chain.url = url[0]
 	}
-	return jrpc
+	return chain
 }
 
-func (jrpc *JSONrpc) getAccountData() (*jsonrpc.RPCResponse, error) {
-	client := jsonrpc.NewClient(jrpc.url)
-	resp, err := client.Call(jrpc.method, jrpc.params)
+func (c *Chain) getAccountData(inputParams ...interface{}) (*jsonrpc.RPCResponse, error) {
+	client := jsonrpc.NewClient(c.url)
+	resp, err := client.Call(c.method, jsonrpc.Params(inputParams))
+
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("json rpc call error: %s", err)
 	}
+
 	if resp.Error != nil {
-		return nil, fmt.Errorf("%s", resp.Error)
+		return nil, fmt.Errorf("rpc response returned: %s", resp.Error)
 	}
 	return resp, nil
 }
 
-// GetAccountBandwidth returns the current "forum" bandwidth for a given account.
+// GetAccountBandwidth returns the current "forum" average bandwidth for a given account.
 // This currently returns "Could not find method" from api.hive.blog
-func (jrpc *JSONrpc) GetAccountBandwidth(account string) (string, error) {
-	jrpc.method = "get_account_bandwidth"
-	jrpc.params = []string{account, "forum"}
-	_, err := jrpc.getAccountData()
+func (c *Chain) GetAccountBandwidth(account string) (string, error) {
+	c.method = "get_account_bandwidth"
+	c.params = []string{account, "forum"}
+	_, err := c.getAccountData()
 	if err != nil {
 		return "", err
 	}
 	return "", nil
+}
+
+// GetAccountCount returns the current number of accounts on the network.
+func (c *Chain) GetAccountCount() (int64, error) {
+	c.method = "get_account_count"
+	c.params = []string{}
+
+	resp, err := c.getAccountData()
+	if err != nil {
+		return -1, err
+	}
+
+	output, err := resp.GetInt()
+	if err != nil {
+		return -1, err
+	}
+
+	return output, nil
+}
+
+// GetAccountHistory returns the history of an account.
+// Currently, returns a slice of a slice of interfaces due to mixed data types.
+// A better solution is needed and may come once the rest of the methods have been implemented.
+// If you know a solution please submit a patch to jr[at]jrswab.com via [git send-email](https://git-send-email.io/)
+// or use [git.sr.ht/~jrswab/go-hive/send-email](https://git.sr.ht/~jrswab/go-hive/send-email)
+func (c *Chain) GetAccountHistory(acc string, start, limit int) (interface{}, error) {
+	c.method = "get_account_history"
+
+	resp, err := c.getAccountData(acc, start, limit)
+	if err != nil {
+		fmt.Println(err)
+		//return nil, err
+	}
+	arr := [][]interface{}{}
+	err = resp.GetObject(&arr)
+	if err != nil {
+		return nil, err
+	}
+	return arr, nil
 }
