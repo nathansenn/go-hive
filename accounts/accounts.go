@@ -2,6 +2,7 @@ package accounts
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/ybbus/jsonrpc"
 )
@@ -89,8 +90,7 @@ func (c *Chain) GetAccountHistory(acc string, start, limit int) (interface{}, er
 
 	resp, err := c.getAccountData(acc, start, limit)
 	if err != nil {
-		fmt.Println(err)
-		//return nil, err
+		return nil, err
 	}
 	arr := [][]interface{}{}
 	err = resp.GetObject(&arr)
@@ -98,4 +98,29 @@ func (c *Chain) GetAccountHistory(acc string, start, limit int) (interface{}, er
 		return nil, err
 	}
 	return arr, nil
+}
+
+// GetAccountReputation takes  an account name and returns and int of the current reputation.
+// When this method returns an error it also sends `-1` as the integer.
+func (c *Chain) GetAccountReputation(acc string) (int, error) {
+	c.method = "get_account_reputations"
+
+	resp, err := c.getAccountData(acc, 1)
+	if err != nil {
+		return -1, err
+	}
+
+	outMap := make(map[string]string)
+	out := []map[string]string{outMap}
+	err = resp.GetObject(&out)
+	if err != nil {
+		return -1, err
+	}
+
+	output, err := strconv.Atoi(outMap["reputation"])
+	if err != nil {
+		return -1, err
+	}
+	return output, nil
+
 }
