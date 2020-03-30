@@ -8,6 +8,9 @@
 # This is a package...
 main.go
 
+# JetBrains Goland directory
+.idea
+
 # Test binary, built with `go test -c`
 *.test
 

@@ -20,7 +20,7 @@ type Chain struct {
 
 // NewChain creates an struct with Hive defaults.
 // If wish to use a different Hive endpoint (or a different Graphene blockchain
-// pass the URL as a parameter. Otherwise leave the paramaters empty.
+// pass the URL as a parameter. Otherwise leave the parameters empty.
 // If more than one URL is entered, only the first will be used.
 // Example:
 // hive := NewChain() // this will default to api.hive.blog
@@ -92,7 +92,7 @@ func (c *Chain) GetAccountHistory(acc string, start, limit int) (interface{}, er
 	if err != nil {
 		return nil, err
 	}
-	arr := [][]interface{}{}
+	var arr [][]interface{}
 	err = resp.GetObject(&arr)
 	if err != nil {
 		return nil, err
