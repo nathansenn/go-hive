@@ -7,6 +7,72 @@ import (
 	"github.com/ybbus/jsonrpc"
 )
 
+type AccData struct {
+	Active                 map[string]interface{} `json:"active"`
+	Balance                string `json:"balance"`
+	CanVote                bool `json:"can_vote"`
+	CommentCount           int `json:"comment_count"`
+	Created                string `json:"created"`
+	CurationRewards        int `json:"curation_rewards"`
+	DelegatedVestingShares string `json:"delegated_vesting_shares"`
+	DownVoteManaBar        map[string]interface{} `json:"down_vote_manabar"`
+	GuestBloggers          []string `json:"guest_bloggers"`
+	HbdBalance string `json:"sbd_balance"`
+	HbdSeconds string `json:"sbd_seconds"`
+	HbdSecondsLastUpdate string `json:"sbd_seconds_last_update"`
+	HbdLastInterestPayment string `json:"sbd_last_interest_payment"`
+	ID                     int `json:"id"`
+	JsonMetadata           string `json:"json_metadata"`
+	LastAccountRecovery string `json:"last_account_recovery"`
+	LastAccountUpdate      string                 `json:"last_account_update"`
+	LastOwnerUpdate        string                 `json:"last_owner_update"`
+	LastPost               string                 `json:"last_post"`
+	LastRootPost           string                 `json:"last_root_post"`
+	LastVoteTime           string                 `json:"last_vote_time"`
+	LifetimeVoteCount      int                    `json:"lifetime_vote_count"`
+	MarketHistory          []interface{}          `json:"market_history"`
+	MemoKey                string                 `json:"memo_key"`
+	Mined                  bool                   `json:"mined"`
+	Name                   string                 `json:"name"`
+	NextVestingWithdraw    string                 `json:"next_vesting_withdraw"`
+	OtherHistory           []interface{}          `json:"other_history"`
+	Owner                  map[string]interface{} `json:"owner"`
+	PendingClaimedAccounts int                    `json:"pending_claimed_accounts"`
+	PostBandwidth          int                    `json:"post_bandwidth"`
+	PostCount              int                    `json:"post_count"`
+	PostHistory            []interface{}          `json:"post_history"`
+	Posting                interface{}            `json:"posting"`
+	PostingJsonMetadata    string                 `json:"posting_json_metadata"`
+	PostingRewards         float64                `json:"posting_rewards"`
+	ProxiedVsfVotes        interface{}            `json:"proxied_vsf_votes"`
+	Proxy                  string                 `json:"proxy"`
+	ReceivedVestingShares  string                 `json:"recived_vesting_shares"`
+	RecoveryAccount        string                 `json:"recovery_Account"`
+	Reputation             string                 `json:"reputation"`
+	ResetAccount           string                 `json:"reset_account"`
+	RewardHBDBalance       string                 `json:"reward_sbd_balance"`
+	RewardHiveBalance      string                 `json:"reward_steem_balance"`
+	RewardVestingBalance   string                 `json:"reward_vesting_balance"`
+	RewardVestingHive      string                 `json:"reward_vesting_steem"`
+	SavingsBalance         string                 `json:"savings_balance"`
+	SavingsHbdBalance      string                 `json:"savings_sbd_balance"`
+	SavingsHbdSeconds      string                 `json:"savings_sbd_seconds"`
+	SavingsHbdSecondsLastUpdate string `json:"savings_sbd_seconds_last_update"`
+	SavingsHbdLastInterestPayment string `json:"savings_sbd_last_interest_payment"`
+	TagsUsage []string `json:"tags_usage"`
+	TransferHistory []interface{} `json:"transfer_history"`
+	ToWithdraw int `json:"to_withdraw"`
+	VestingBalance string `json:"vesting_balance"`
+	VestingShares string `json:"vesting_shares"`
+	VestingWithdrawRate string `json:"vesting_withdraw_rate"`
+	VoteHistory []interface{} `json:"vote_history"`
+	VotingPower int `json:"voting_power"`
+	Withdrawn int `json:"withdrawn"`
+	WithdrawRoutes int `json:"withdraw_routes"`
+	WitnessesVotedFor int `json:"witnesses_vote_for"`
+	WitnessVotes []string `json:"witness_votes"`
+}
+
 // Chain is used to pass data into unexposed functions.
 // When defining a new JSONrpc use the `NewJRPC()` function for Hive api defaults.
 // To specify an api endpoint execute `NewJRPC()` with a full URL.
@@ -123,4 +189,32 @@ func (c *Chain) GetAccountReputation(acc string) (int, error) {
 	}
 	return output, nil
 
+}
+
+// GetAccounts updates a slice of account data for the accounts passed in.
+// At least one account is required.
+//Example:
+//c := a.NewChain()
+//var data []a.AccData
+//if err := c.GetAccounts(&data, "jrswab"); err != nil {
+//	fmt.Println(err)
+//}
+//fmt.Println(data[0].Balance)
+func (c *Chain) GetAccounts(out *[]AccData, acc ...string) error{
+	if len(acc) < 1 {
+		return fmt.Errorf("method GetAccounts needs at least one account name")
+	}
+	c.method = "get_accounts"
+
+	resp, err := c.getAccountData(acc)
+	if err != nil {
+		return err
+	}
+
+	err = resp.GetObject(&out)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
