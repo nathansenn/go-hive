@@ -3,6 +3,8 @@ package accounts
 import (
 	"reflect"
 	"testing"
+
+	rpc "github.com/ybbus/jsonrpc"
 )
 
 func TestNewChain(t *testing.T) {
@@ -20,8 +22,9 @@ func TestNewChain(t *testing.T) {
 				url: []string{},
 			},
 			want: &Chain{
-				id:      1,
-				url:     "https://api.hive.blog",
+				id:     1,
+				url:    "https://api.hive.blog",
+				client: rpc.NewClient("https://api.hive.blog"),
 			},
 		},
 		{
@@ -30,8 +33,9 @@ func TestNewChain(t *testing.T) {
 				url: []string{"test.URL"},
 			},
 			want: &Chain{
-				id:      1,
-				url:     "test.URL",
+				id:     1,
+				url:    "test.URL",
+				client: rpc.NewClient("test.URL"),
 			},
 		},
 		{
@@ -40,8 +44,9 @@ func TestNewChain(t *testing.T) {
 				url: []string{"test.URL", "another.str"},
 			},
 			want: &Chain{
-				id:      1,
-				url:     "test.URL",
+				id:     1,
+				url:    "test.URL",
+				client: rpc.NewClient("test.URL"),
 			},
 		},
 	}
