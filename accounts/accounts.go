@@ -24,8 +24,8 @@ type Chain struct {
 	client  Caller
 }
 
-// AccData holds the output of the GetAccounts method.
-type AccData struct {
+// AccountData holds the output of the GetAccounts method.
+type AccountData struct {
 	Active                        map[string]interface{} `json:"active"`
 	Balance                       string                 `json:"balance"`
 	CanVote                       bool                   `json:"can_vote"`
@@ -40,7 +40,7 @@ type AccData struct {
 	HbdSecondsLastUpdate          string                 `json:"sbd_seconds_last_update"`
 	HbdLastInterestPayment        string                 `json:"sbd_last_interest_payment"`
 	ID                            int                    `json:"id"`
-	JsonMetadata                  string                 `json:"json_metadata"`
+	JSONMetadata                  string                 `json:"json_metadata"`
 	LastAccountRecovery           string                 `json:"last_account_recovery"`
 	LastAccountUpdate             string                 `json:"last_account_update"`
 	LastOwnerUpdate               string                 `json:"last_owner_update"`
@@ -60,7 +60,7 @@ type AccData struct {
 	PostCount                     int                    `json:"post_count"`
 	PostHistory                   []interface{}          `json:"post_history"`
 	Posting                       interface{}            `json:"posting"`
-	PostingJsonMetadata           string                 `json:"posting_json_metadata"`
+	PostingJSONMetadata           string                 `json:"posting_json_metadata"`
 	PostingRewards                float64                `json:"posting_rewards"`
 	ProxiedVsfVotes               interface{}            `json:"proxied_vsf_votes"`
 	Proxy                         string                 `json:"proxy"`
@@ -113,8 +113,8 @@ func NewChain(url ...string) *Chain {
 
 func (c *Chain) getAccountData(inputParams ...interface{}) (*rpc.RPCResponse, error) {
 	request := rpc.NewRequest(c.method, inputParams)
-	resp, err := c.client.CallRaw(request)
 
+	resp, err := c.client.CallRaw(request)
 	if err != nil {
 		return nil, fmt.Errorf("json rpc call error: %s", err)
 	}
@@ -127,14 +127,18 @@ func (c *Chain) getAccountData(inputParams ...interface{}) (*rpc.RPCResponse, er
 
 // GetAccountBandwidth returns the current "forum" average bandwidth for a given account.
 // This currently returns "Could not find method" from api.hive.blog
-func (c *Chain) GetAccountBandwidth(account string) (string, error) {
+func (c *Chain) GetAccountBandwidth(account string) (int64, error) {
 	c.method = "get_account_bandwidth"
 	c.params = []string{account, "forum"}
-	_, err := c.getAccountData()
+	resp, err := c.getAccountData()
 	if err != nil {
-		return "", err
+		return -1, err
 	}
-	return "", nil
+	out, err := resp.GetInt()
+	if err != nil {
+		return -1, err
+	}
+	return out, nil
 }
 
 // GetAccountCount returns the current number of accounts on the network.
@@ -156,10 +160,6 @@ func (c *Chain) GetAccountCount() (int64, error) {
 }
 
 // GetAccountHistory returns the history of an account.
-// Currently, returns a slice of a slice of interfaces due to mixed data types.
-// A better solution is needed and may come once the rest of the methods have been implemented.
-// If you know a solution please submit a patch to jr[at]jrswab.com via [git send-email](https://git-send-email.io/)
-// or use [git.sr.ht/~jrswab/go-hive/send-email](https://git.sr.ht/~jrswab/go-hive/send-email)
 func (c *Chain) GetAccountHistory(acc string, start, limit int) (interface{}, error) {
 	c.method = "get_account_history"
 
@@ -168,62 +168,66 @@ func (c *Chain) GetAccountHistory(acc string, start, limit int) (interface{}, er
 		return nil, err
 	}
 	var arr [][]interface{}
-	err = resp.GetObject(&arr)
-	if err != nil {
+	if err = resp.GetObject(&arr); err != nil {
 		return nil, err
 	}
 	return arr, nil
 }
 
-// GetAccountReputation takes  an account name and returns and int of the current reputation.
-// When this method returns an error it also sends `-1` as the integer.
+// AccountReputation is a struct for receiving data from GetAccountReputation()
+type accountReputation struct {
+	Account    string `json:"account"`
+	Reputation string `json:"reputation"`
+}
+
+// GetAccountReputation takes accounts name and returns a slice of type AccountReputation.
+// Returns `-1` when error is not nil.
 func (c *Chain) GetAccountReputation(acc string) (int, error) {
 	c.method = "get_account_reputations"
+	data := []accountReputation{}
 
 	resp, err := c.getAccountData(acc, 1)
 	if err != nil {
 		return -1, err
 	}
 
-	outMap := make(map[string]string)
-	out := []map[string]string{outMap}
-	err = resp.GetObject(&out)
-	if err != nil {
+	if resp.GetObject(&data); err != nil {
 		return -1, err
 	}
 
-	output, err := strconv.Atoi(outMap["reputation"])
+	num, err := strconv.Atoi(data[0].Reputation)
 	if err != nil {
 		return -1, err
 	}
-	return output, nil
-
+	return num, nil
 }
 
 // GetAccounts updates a slice of account data for the accounts passed in.
 // At least one account is required.
 //Example:
 //c := a.NewChain()
-//var data []a.AccData
-//if err := c.GetAccounts(&data, "jrswab"); err != nil {
+//
+//accData,err := c.GetAccounts("jrswab")
+//if err != nil {
 //	fmt.Println(err)
 //}
 //fmt.Println(data[0].Balance)
-func (c *Chain) GetAccounts(out *[]AccData, acc ...string) error {
+func (c *Chain) GetAccounts(acc ...string) (*[]AccountData, error) {
 	if len(acc) < 1 {
-		return fmt.Errorf("method GetAccounts needs at least one account name")
+		return nil, fmt.Errorf("method GetAccounts needs at least one account name")
 	}
 	c.method = "get_accounts"
 
 	resp, err := c.getAccountData(acc)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
+	out := []AccountData{}
 	err = resp.GetObject(&out)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return &out, nil
 }
