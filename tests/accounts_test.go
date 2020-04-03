@@ -1,4 +1,4 @@
-package accounts
+package gohive
 
 import (
 	"encoding/json"
@@ -6,62 +6,11 @@ import (
 	"reflect"
 	"testing"
 
-	"git.sr.ht/~jrswab/go-hive/accounts/mocks"
+	h "git.sr.ht/~jrswab/go-hive"
+	"git.sr.ht/~jrswab/go-hive/mocks"
 	"github.com/stretchr/testify/mock"
 	rpc "github.com/ybbus/jsonrpc"
 )
-
-func TestNewChain(t *testing.T) {
-	type args struct {
-		url []string
-	}
-	tests := []struct {
-		name string
-		args args
-		want *Chain
-	}{
-		{
-			name: "No url passed in",
-			args: args{
-				url: []string{},
-			},
-			want: &Chain{
-				id:     1,
-				url:    "https://api.hive.blog",
-				client: rpc.NewClient("https://api.hive.blog"),
-			},
-		},
-		{
-			name: "url passed in",
-			args: args{
-				url: []string{"test.URL"},
-			},
-			want: &Chain{
-				id:     1,
-				url:    "test.URL",
-				client: rpc.NewClient("test.URL"),
-			},
-		},
-		{
-			name: "more than one url passed in",
-			args: args{
-				url: []string{"test.URL", "another.str"},
-			},
-			want: &Chain{
-				id:     1,
-				url:    "test.URL",
-				client: rpc.NewClient("test.URL"),
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := NewChain(tt.args.url...); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("NewJRPC() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
 
 func TestChain_GetAccountBandwidth(t *testing.T) {
 	mockCall := new(mocks.Caller)
@@ -82,12 +31,8 @@ func TestChain_GetAccountBandwidth(t *testing.T) {
 	mockCall.On("CallRaw", mock.Anything).Return(output2, nil).Once()
 
 	type fields struct {
-		version string
-		method  string
-		params  interface{}
-		id      int
-		url     string
-		client  Caller
+		URL    string
+		Client h.Caller
 	}
 	type args struct {
 		account string
@@ -102,12 +47,8 @@ func TestChain_GetAccountBandwidth(t *testing.T) {
 		{
 			name: "Return bandwidth via proper usage",
 			fields: fields{
-				version: "2.0",
-				method:  "get_account_bandwidth",
-				params:  nil,
-				id:      0,
-				url:     "https://api.hive.blog",
-				client:  mockCall,
+				URL:    "https://api.hive.blog",
+				Client: mockCall,
 			},
 			args:    args{"jrswab"},
 			want:    1111,
@@ -116,12 +57,8 @@ func TestChain_GetAccountBandwidth(t *testing.T) {
 		{
 			name: "Get call error message",
 			fields: fields{
-				version: "2.0",
-				method:  "get_account_bandwidth",
-				params:  nil,
-				id:      0,
-				url:     "https://api.hive.blog",
-				client:  mockCall,
+				URL:    "https://api.hive.blog",
+				Client: mockCall,
 			},
 			args:    args{"jrswab"},
 			want:    -1,
@@ -130,12 +67,8 @@ func TestChain_GetAccountBandwidth(t *testing.T) {
 		{
 			name: "Get responce error message",
 			fields: fields{
-				version: "2.0",
-				method:  "get_account_bandwidth",
-				params:  nil,
-				id:      0,
-				url:     "https://api.hive.blog",
-				client:  mockCall,
+				URL:    "https://api.hive.blog",
+				Client: mockCall,
 			},
 			args:    args{"jrswab"},
 			want:    -1,
@@ -144,13 +77,9 @@ func TestChain_GetAccountBandwidth(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := &Chain{
-				version: tt.fields.version,
-				method:  tt.fields.method,
-				params:  tt.fields.params,
-				id:      tt.fields.id,
-				url:     tt.fields.url,
-				client:  tt.fields.client,
+			c := &h.Client{
+				URL:    tt.fields.URL,
+				Client: tt.fields.Client,
 			}
 			got, err := c.GetAccountBandwidth(tt.args.account)
 			if (err != nil) != tt.wantErr {
@@ -183,12 +112,8 @@ func TestChain_GetAccountCount(t *testing.T) {
 	mockCall.On("CallRaw", mock.Anything).Return(output2, nil).Once()
 
 	type fields struct {
-		version string
-		method  string
-		params  interface{}
-		id      int
-		url     string
-		client  Caller
+		URL    string
+		Client h.Caller
 	}
 	tests := []struct {
 		name    string
@@ -199,12 +124,8 @@ func TestChain_GetAccountCount(t *testing.T) {
 		{
 			name: "Return a count via proper usage",
 			fields: fields{
-				version: "2.0",
-				method:  "get_account_bandwidth",
-				params:  nil,
-				id:      0,
-				url:     "https://api.hive.blog",
-				client:  mockCall,
+				URL:    "https://api.hive.blog",
+				Client: mockCall,
 			},
 			want:    1111,
 			wantErr: false,
@@ -212,12 +133,8 @@ func TestChain_GetAccountCount(t *testing.T) {
 		{
 			name: "Get call error message",
 			fields: fields{
-				version: "2.0",
-				method:  "get_account_bandwidth",
-				params:  nil,
-				id:      0,
-				url:     "https://api.hive.blog",
-				client:  mockCall,
+				URL:    "https://api.hive.blog",
+				Client: mockCall,
 			},
 			want:    -1,
 			wantErr: true,
@@ -225,12 +142,8 @@ func TestChain_GetAccountCount(t *testing.T) {
 		{
 			name: "Get responce error message",
 			fields: fields{
-				version: "2.0",
-				method:  "get_account_bandwidth",
-				params:  nil,
-				id:      0,
-				url:     "https://api.hive.blog",
-				client:  mockCall,
+				URL:    "https://api.hive.blog",
+				Client: mockCall,
 			},
 			want:    -1,
 			wantErr: true,
@@ -238,13 +151,9 @@ func TestChain_GetAccountCount(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := &Chain{
-				version: tt.fields.version,
-				method:  tt.fields.method,
-				params:  tt.fields.params,
-				id:      tt.fields.id,
-				url:     tt.fields.url,
-				client:  tt.fields.client,
+			c := &h.Client{
+				URL:    tt.fields.URL,
+				Client: tt.fields.Client,
 			}
 			got, err := c.GetAccountCount()
 			if (err != nil) != tt.wantErr {
@@ -276,12 +185,8 @@ func TestChain_GetAccountHistory(t *testing.T) {
 	mockCall.On("CallRaw", mock.Anything).Return(output2, nil).Once()
 
 	type fields struct {
-		version string
-		method  string
-		params  interface{}
-		id      int
-		url     string
-		client  Caller
+		URL    string
+		Client h.Caller
 	}
 	type args struct {
 		acc   string
@@ -298,12 +203,8 @@ func TestChain_GetAccountHistory(t *testing.T) {
 		{
 			name: "Return a count via proper usage",
 			fields: fields{
-				version: "2.0",
-				method:  "get_account_bandwidth",
-				params:  nil,
-				id:      0,
-				url:     "https://api.hive.blog",
-				client:  mockCall,
+				URL:    "https://api.hive.blog",
+				Client: mockCall,
 			},
 			args:    args{acc: "jrswab", start: 1000, limit: 1},
 			want:    make([][]interface{}, 0),
@@ -312,12 +213,8 @@ func TestChain_GetAccountHistory(t *testing.T) {
 		{
 			name: "Get call error message",
 			fields: fields{
-				version: "2.0",
-				method:  "get_account_bandwidth",
-				params:  nil,
-				id:      0,
-				url:     "https://api.hive.blog",
-				client:  mockCall,
+				URL:    "https://api.hive.blog",
+				Client: mockCall,
 			},
 			args:    args{acc: "jrswab", start: 1000, limit: 1},
 			want:    nil,
@@ -326,12 +223,8 @@ func TestChain_GetAccountHistory(t *testing.T) {
 		{
 			name: "Get responce error message",
 			fields: fields{
-				version: "2.0",
-				method:  "get_account_bandwidth",
-				params:  nil,
-				id:      0,
-				url:     "https://api.hive.blog",
-				client:  mockCall,
+				URL:    "https://api.hive.blog",
+				Client: mockCall,
 			},
 			args:    args{acc: "jrswab", start: 1000, limit: 1},
 			want:    nil,
@@ -340,13 +233,9 @@ func TestChain_GetAccountHistory(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := &Chain{
-				version: tt.fields.version,
-				method:  tt.fields.method,
-				params:  tt.fields.params,
-				id:      tt.fields.id,
-				url:     tt.fields.url,
-				client:  tt.fields.client,
+			c := &h.Client{
+				URL:    tt.fields.URL,
+				Client: tt.fields.Client,
 			}
 			got, err := c.GetAccountHistory(tt.args.acc, tt.args.start, tt.args.limit)
 			if (err != nil) != tt.wantErr {
@@ -362,7 +251,7 @@ func TestChain_GetAccountHistory(t *testing.T) {
 
 func TestChain_GetAccountReputation(t *testing.T) {
 	mockCall := new(mocks.Caller)
-	accRep := &accountReputation{Account: "jrswab", Reputation: "1111"}
+	accRep := &h.AccountReputation{Account: "jrswab", Reputation: "1111"}
 	output := &rpc.RPCResponse{
 		JSONRPC: "2.0",
 		Result:  []interface{}{accRep},
@@ -378,12 +267,8 @@ func TestChain_GetAccountReputation(t *testing.T) {
 	mockCall.On("CallRaw", mock.Anything).Return(output2, nil).Once()
 
 	type fields struct {
-		version string
-		method  string
-		params  interface{}
-		id      int
-		url     string
-		client  Caller
+		URL    string
+		Client h.Caller
 	}
 	type args struct {
 		acc string
@@ -398,12 +283,8 @@ func TestChain_GetAccountReputation(t *testing.T) {
 		{
 			name: "Testing method logic.",
 			fields: fields{
-				version: "2.0",
-				method:  "get_account_bandwidth",
-				params:  nil,
-				id:      0,
-				url:     "https://api.hive.blog",
-				client:  mockCall,
+				URL:    "https://api.hive.blog",
+				Client: mockCall,
 			},
 			args: args{
 				acc: "jrswab",
@@ -414,12 +295,8 @@ func TestChain_GetAccountReputation(t *testing.T) {
 		{
 			name: "Get call error message",
 			fields: fields{
-				version: "2.0",
-				method:  "get_account_bandwidth",
-				params:  nil,
-				id:      0,
-				url:     "https://api.hive.blog",
-				client:  mockCall,
+				URL:    "https://api.hive.blog",
+				Client: mockCall,
 			},
 			args:    args{acc: "jrswab"},
 			want:    -1,
@@ -428,12 +305,8 @@ func TestChain_GetAccountReputation(t *testing.T) {
 		{
 			name: "Get responce error message",
 			fields: fields{
-				version: "2.0",
-				method:  "get_account_bandwidth",
-				params:  nil,
-				id:      0,
-				url:     "https://api.hive.blog",
-				client:  mockCall,
+				URL:    "https://api.hive.blog",
+				Client: mockCall,
 			},
 			args:    args{acc: "jrswab"},
 			want:    -1,
@@ -442,13 +315,9 @@ func TestChain_GetAccountReputation(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := &Chain{
-				version: tt.fields.version,
-				method:  tt.fields.method,
-				params:  tt.fields.params,
-				id:      tt.fields.id,
-				url:     tt.fields.url,
-				client:  tt.fields.client,
+			c := &h.Client{
+				URL:    tt.fields.URL,
+				Client: tt.fields.Client,
 			}
 			got, err := c.GetAccountReputation(tt.args.acc)
 			if (err != nil) != tt.wantErr {
@@ -464,8 +333,8 @@ func TestChain_GetAccountReputation(t *testing.T) {
 
 func TestChain_GetAccounts(t *testing.T) {
 	mockCall := new(mocks.Caller)
-	accMock := &AccountData{ID: 1111, Mined: false, Name: "jrswab"}
-	accMock2 := &AccountData{ID: 2222, Mined: false, Name: "hiveio"}
+	accMock := &h.AccountData{ID: 1111, Mined: false, Name: "jrswab"}
+	accMock2 := &h.AccountData{ID: 2222, Mined: false, Name: "hiveio"}
 	output := &rpc.RPCResponse{
 		JSONRPC: "2.0",
 		Result:  []interface{}{accMock},
@@ -490,12 +359,8 @@ func TestChain_GetAccounts(t *testing.T) {
 	mockCall.On("CallRaw", mock.Anything).Return(output3, nil).Once()
 
 	type fields struct {
-		version string
-		method  string
-		params  interface{}
-		id      int
-		url     string
-		client  Caller
+		URL    string
+		Client h.Caller
 	}
 	type args struct {
 		acc []string
@@ -504,46 +369,34 @@ func TestChain_GetAccounts(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		want    *[]AccountData
+		want    *[]h.AccountData
 		wantErr bool
 	}{
 		{
 			name: "Get single account",
 			fields: fields{
-				version: "2.0",
-				method:  "get_account_bandwidth",
-				params:  nil,
-				id:      0,
-				url:     "https://api.hive.blog",
-				client:  mockCall,
+				URL:    "https://api.hive.blog",
+				Client: mockCall,
 			},
 			args:    args{[]string{"jrswab"}},
-			want:    &[]AccountData{*accMock},
+			want:    &[]h.AccountData{*accMock},
 			wantErr: false,
 		},
 		{
 			name: "Get two accounts",
 			fields: fields{
-				version: "2.0",
-				method:  "get_account_bandwidth",
-				params:  nil,
-				id:      0,
-				url:     "https://api.hive.blog",
-				client:  mockCall,
+				URL:    "https://api.hive.blog",
+				Client: mockCall,
 			},
 			args:    args{[]string{"jrswab", "hiveio"}},
-			want:    &[]AccountData{*accMock2, *accMock},
+			want:    &[]h.AccountData{*accMock2, *accMock},
 			wantErr: false,
 		},
 		{
 			name: "Get call error message",
 			fields: fields{
-				version: "2.0",
-				method:  "get_account_bandwidth",
-				params:  nil,
-				id:      0,
-				url:     "https://api.hive.blog",
-				client:  mockCall,
+				URL:    "https://api.hive.blog",
+				Client: mockCall,
 			},
 			args:    args{[]string{"jrswab", "hiveio"}},
 			want:    nil,
@@ -552,12 +405,8 @@ func TestChain_GetAccounts(t *testing.T) {
 		{
 			name: "Get responce error message",
 			fields: fields{
-				version: "2.0",
-				method:  "get_account_bandwidth",
-				params:  nil,
-				id:      0,
-				url:     "https://api.hive.blog",
-				client:  mockCall,
+				URL:    "https://api.hive.blog",
+				Client: mockCall,
 			},
 			args:    args{[]string{"jrswab", "hiveio"}},
 			want:    nil,
@@ -566,12 +415,8 @@ func TestChain_GetAccounts(t *testing.T) {
 		{
 			name: "Empty args",
 			fields: fields{
-				version: "2.0",
-				method:  "get_account_bandwidth",
-				params:  nil,
-				id:      0,
-				url:     "https://api.hive.blog",
-				client:  mockCall,
+				URL:    "https://api.hive.blog",
+				Client: mockCall,
 			},
 			args:    args{[]string{}},
 			want:    nil,
@@ -580,13 +425,9 @@ func TestChain_GetAccounts(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := &Chain{
-				version: tt.fields.version,
-				method:  tt.fields.method,
-				params:  tt.fields.params,
-				id:      tt.fields.id,
-				url:     tt.fields.url,
-				client:  tt.fields.client,
+			c := &h.Client{
+				URL:    tt.fields.URL,
+				Client: tt.fields.Client,
 			}
 			got, err := c.GetAccounts(tt.args.acc...)
 			if (err != nil) != tt.wantErr {

@@ -1,28 +1,9 @@
-package accounts
+package gohive
 
 import (
 	"fmt"
 	"strconv"
-
-	rpc "github.com/ybbus/jsonrpc"
 )
-
-// Caller interface is used for testing purposes.
-type Caller interface {
-	CallRaw(*rpc.RPCRequest) (*rpc.RPCResponse, error)
-}
-
-// Chain is used to pass data into unexposed functions.
-// When defining a new JSONrpc use the `NewChain()` function for Hive API defaults.
-// To specify an api endpoint execute `NewChain()` with a full URL.
-type Chain struct {
-	version string
-	method  string
-	params  interface{}
-	id      int
-	url     string
-	client  Caller
-}
 
 // AccountData holds the output of the GetAccounts method.
 type AccountData struct {
@@ -91,62 +72,26 @@ type AccountData struct {
 	WitnessVotes                  []string               `json:"witness_votes"`
 }
 
-// NewChain creates an struct with Hive defaults.
-// If wish to use a different Hive endpoint (or a different Graphene blockchain
-// pass the URL as a parameter. Otherwise leave the parameters empty.
-// If more than one URL is entered, only the first will be used.
-// Example:
-// hive := NewChain()
-func NewChain(url ...string) *Chain {
-	chain := &Chain{
-		id:     1,
-		url:    "https://api.hive.blog",
-		client: rpc.NewClient("https://api.hive.blog"),
-	}
-
-	if len(url) > 0 {
-		chain.url = url[0]
-		chain.client = rpc.NewClient(url[0])
-	}
-	return chain
-}
-
-func (c *Chain) getAccountData(inputParams ...interface{}) (*rpc.RPCResponse, error) {
-	request := rpc.NewRequest(c.method, inputParams)
-
-	resp, err := c.client.CallRaw(request)
-	if err != nil {
-		return nil, fmt.Errorf("json rpc call error: %s", err)
-	}
-
-	if resp.Error != nil {
-		return nil, fmt.Errorf("rpc response returned: %s", resp.Error)
-	}
-	return resp, nil
-}
-
 // GetAccountBandwidth returns the current "forum" average bandwidth for a given account.
 // This currently returns "Could not find method" from api.hive.blog
-func (c *Chain) GetAccountBandwidth(account string) (int64, error) {
-	c.method = "get_account_bandwidth"
-	c.params = []string{account, "forum"}
-	resp, err := c.getAccountData()
+func (c *Client) GetAccountBandwidth(account string) (int64, error) {
+	resp, err := c.getAccountData("get_account_bandwidth", []string{account, "forum"})
 	if err != nil {
 		return -1, err
 	}
+
 	out, err := resp.GetInt()
 	if err != nil {
 		return -1, err
 	}
+
 	return out, nil
 }
 
 // GetAccountCount returns the current number of accounts on the network.
-func (c *Chain) GetAccountCount() (int64, error) {
-	c.method = "get_account_count"
-	c.params = []string{}
+func (c *Client) GetAccountCount() (int64, error) {
 
-	resp, err := c.getAccountData()
+	resp, err := c.getAccountData("get_account_count", []string{})
 	if err != nil {
 		return -1, err
 	}
@@ -160,37 +105,37 @@ func (c *Chain) GetAccountCount() (int64, error) {
 }
 
 // GetAccountHistory returns the history of an account.
-func (c *Chain) GetAccountHistory(acc string, start, limit int) (interface{}, error) {
-	c.method = "get_account_history"
+func (c *Client) GetAccountHistory(acc string, start, limit int) (interface{}, error) {
 
-	resp, err := c.getAccountData(acc, start, limit)
+	resp, err := c.getAccountData("get_account_history", acc, start, limit)
 	if err != nil {
 		return nil, err
 	}
+
 	var arr [][]interface{}
 	if err = resp.GetObject(&arr); err != nil {
 		return nil, err
 	}
+
 	return arr, nil
 }
 
 // AccountReputation is a struct for receiving data from GetAccountReputation()
-type accountReputation struct {
+type AccountReputation struct {
 	Account    string `json:"account"`
 	Reputation string `json:"reputation"`
 }
 
 // GetAccountReputation takes accounts name and returns a slice of type AccountReputation.
 // Returns `-1` when error is not nil.
-func (c *Chain) GetAccountReputation(acc string) (int, error) {
-	c.method = "get_account_reputations"
-	data := []accountReputation{}
+func (c *Client) GetAccountReputation(acc string) (int, error) {
 
-	resp, err := c.getAccountData(acc, 1)
+	resp, err := c.getAccountData("get_account_reputations", acc, 1)
 	if err != nil {
 		return -1, err
 	}
 
+	data := []AccountReputation{}
 	if resp.GetObject(&data); err != nil {
 		return -1, err
 	}
@@ -212,13 +157,12 @@ func (c *Chain) GetAccountReputation(acc string) (int, error) {
 //	fmt.Println(err)
 //}
 //fmt.Println(data[0].Balance)
-func (c *Chain) GetAccounts(acc ...string) (*[]AccountData, error) {
+func (c *Client) GetAccounts(acc ...string) (*[]AccountData, error) {
 	if len(acc) < 1 {
 		return nil, fmt.Errorf("method GetAccounts needs at least one account name")
 	}
-	c.method = "get_accounts"
 
-	resp, err := c.getAccountData(acc)
+	resp, err := c.getAccountData("get_accounts", acc)
 	if err != nil {
 		return nil, err
 	}
