@@ -1,5 +1,4 @@
-module git.sr.ht/~jrswab/go-hive
-
+module https://github.com/nathansenn/go-hive
 go 1.14
 
 require (
