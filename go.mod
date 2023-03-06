@@ -1,4 +1,4 @@
-module https://github.com/nathansenn/go-hive
+module github.com/nathansenn/go-hive
 go 1.14
 
 require (
