@@ -6,8 +6,8 @@ import (
 	"reflect"
 	"testing"
 
-	h "git.sr.ht/~jrswab/go-hive"
-	"git.sr.ht/~jrswab/go-hive/mocks"
+	h "github.com/nathansenn/go-hive"
+	"github.com/nathansenn/go-hive/mocks"
 	"github.com/stretchr/testify/mock"
 	rpc "github.com/ybbus/jsonrpc"
 )

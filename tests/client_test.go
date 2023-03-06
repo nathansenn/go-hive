@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	h "git.sr.ht/~jrswab/go-hive"
+	h "github.com/nathansenn/go-hive"
 	rpc "github.com/ybbus/jsonrpc"
 )
 
